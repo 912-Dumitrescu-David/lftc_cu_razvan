@@ -55,16 +55,28 @@ class Grammar:
             for rhs in rhs_list:
                 for symbol in rhs:
                     if symbol not in N and symbol not in E and symbol != "epsilon":
-                        print(f"Error: Symbol '{symbol}' in production '{lhs} -> {' '.join(rhs)}' is neither a terminal nor a nonterminal.")
+                        print(
+                            f"Error: Symbol '{symbol}' in production '{lhs} -> {' '.join(rhs)}' is neither a terminal nor a nonterminal.")
                         return False
 
         return True
 
-
     def is_cfg(self):
-        for key in self.P.keys():
-            if key not in self.N:
+        # Check each production's LHS
+        for lhs, rhs_list in self.P.items():
+            # Ensure LHS is a single nonterminal
+            if lhs not in self.N:
+                print(f"Invalid LHS: '{lhs}' is not a nonterminal.")
                 return False
+
+            # Validate each RHS
+            for rhs in rhs_list:
+                for symbol in rhs:
+                    if symbol not in self.N and symbol not in self.E and symbol != "epsilon":
+                        print(f"Invalid symbol in production {lhs} -> {' '.join(rhs)}: '{symbol}'")
+                        return False
+
+        # All checks passed
         return True
 
     def get_nonterminal_productions(self, nonterminal):
@@ -108,3 +120,57 @@ class Grammar:
             print(f"An unexpected error occurred while processing {filename}: {ex}")
 
         print("\n" + "-" * 30 + "\n")
+
+    def process_grammar_with_interface(filename):
+        """Processes a grammar file and provides an interactive menu."""
+        try:
+            print(f"\nLoading grammar from {filename}...\n")
+            g = Grammar.from_file(filename)
+
+            # Interactive menu loop
+            while True:
+                print(f"Grammar: {filename}")
+                print("Options:")
+                print("1. Show Nonterminals (N)")
+                print("2. Show Terminals (E)")
+                print("3. Show Productions (P)")
+                print("4. Check if CFG")
+                print("5. Show Productions for Start Symbol (S)")
+                print("6. Show All")
+                print("7. Exit")
+                choice = input("Choose an option: ")
+
+                if choice == "1":
+                    print("Nonterminals (N):", g.get_nonterminals())
+                elif choice == "2":
+                    print("Terminals (E):", g.get_terminals())
+                elif choice == "3":
+                    print("Productions (P):")
+                    for lhs, rhs in g.P.items():
+                        formatted_rhs = " | ".join([" ".join(prod) for prod in rhs])
+                        print(f"  {lhs} -> {formatted_rhs}")
+                elif choice == "4":
+                    print("Is CFG:", g.is_cfg())
+                elif choice == "5":
+                    print(f"Productions for Start Symbol ({g.S}):", g.get_nonterminal_productions(g.S))
+                elif choice == "6":  # Show all
+                    print("Nonterminals (N):", g.get_nonterminals())
+                    print("Terminals (E):", g.get_terminals())
+                    print("Productions (P):")
+                    for lhs, rhs in g.P.items():
+                        formatted_rhs = " | ".join([" ".join(prod) for prod in rhs])
+                        print(f"  {lhs} -> {formatted_rhs}")
+                    print("Is CFG:", g.is_cfg())
+                    print(f"Productions for Start Symbol ({g.S}):", g.get_nonterminal_productions(g.S))
+                elif choice == "7":
+                    print("Exiting...")
+                    break
+                else:
+                    print("Invalid choice. Please try again.")
+
+                print("\n" + "-" * 30 + "\n")
+
+        except ValueError as e:
+            print(f"Error in {filename}: {e}")
+        except Exception as ex:
+            print(f"An unexpected error occurred while processing {filename}: {ex}")

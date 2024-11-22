@@ -5,5 +5,8 @@ if __name__ == "__main__":
     grammar_files = ["g1.txt", "g2.txt"]
 
     # Process each grammar file
+    # for filename in grammar_files:
+    #     Grammar.process_grammar(filename)
+
     for filename in grammar_files:
-        Grammar.process_grammar(filename)
+        Grammar.process_grammar_with_interface(filename)
