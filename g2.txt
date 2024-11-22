@@ -1,0 +1,34 @@
+N = S StatementList Statement Declaration Assignment Input Output If Else While For Return Block Expression Term Factor Identifier Digit DigitSequence Letter Character Type Constant String Boolean Float Integer ExpressionTail TermTail IdentifierTail
+E = a b c d e f g h i j k l m n o p q r s t u v w x y z A B C D E F G H I J K L M N O P Q R S T U V W X Y Z 0 1 2 3 4 5 6 7 8 9 _ + - * / = < > ; , . ( ) { } [ ] true false int float bool string print input if else while for return
+S = S
+P =
+S -> StatementList
+StatementList -> Statement StatementList | epsilon
+Statement -> Declaration | Assignment | Input | Output | If | While | For | Return
+Declaration -> Type Identifier
+Type -> int | float | bool | string
+Identifier -> Letter IdentifierTail
+IdentifierTail -> Letter IdentifierTail | Digit IdentifierTail | _ IdentifierTail | epsilon
+Assignment -> Identifier = Expression
+Expression -> Term ExpressionTail
+ExpressionTail -> + Term ExpressionTail | - Term ExpressionTail | epsilon
+Term -> Factor TermTail
+TermTail -> * Factor TermTail | / Factor TermTail | epsilon
+Factor -> Identifier | Constant | ( Expression )
+Constant -> Integer | Float | String | Boolean
+Integer -> + DigitSequence | - DigitSequence | DigitSequence
+DigitSequence -> Digit DigitSequence | Digit
+Float -> Integer . DigitSequence
+String -> Character
+Boolean -> true | false
+Input -> input ( Identifier )
+Output -> print ( Expression )
+If -> if ( Expression ) Block Else
+Else -> else Block | epsilon
+While -> while ( Expression ) Block
+For -> for ( Assignment ; Expression ; Assignment ) Block
+Return -> return Expression
+Block -> { StatementList }
+Digit -> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+Letter -> a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p | q | r | s | t | u | v | w | x | y | z | A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
+Character -> a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p | q | r | s | t | u | v | w | x | y | z | A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | _ | + | - | * | / | = | < | > | ; | , | . | ( | ) | { | } | [ | ]
