@@ -20,26 +20,21 @@ class Grammar:
     def parse_line(line):
         return line.split('=', maxsplit=1)[1].strip().split()
 
+   
     def parse_productions(lines):
         P = {}
         for line in lines:
             if line == '':
                 continue
             lhs, rhs = line.split('->')
-            lhs = lhs.strip()  # Remove spaces around LHS
-            rhs_list = rhs.strip().split('|')  # Split RHS into alternatives
-
-            # Process each alternative in RHS
-            processed_rhs = []
+            lhs = lhs.strip()
+            rhs_list = rhs.strip().split('|')
             for alternative in rhs_list:
-                # Split alternative into individual symbols and remove extra spaces
                 symbols = alternative.strip().split()
-                processed_rhs.append(symbols)
-
-            if lhs in P:
-                P[lhs].extend(processed_rhs)
-            else:
-                P[lhs] = processed_rhs
+                if lhs in P:
+                    P[lhs].append(symbols)
+                else:
+                    P[lhs] = [symbols]
         return P
 
     def validate(N, E, S, P):
@@ -61,24 +56,22 @@ class Grammar:
 
         return True
 
-    def is_cfg(self):
-        # Check each production's LHS
-        for lhs, rhs_list in self.P.items():
-            # Ensure LHS is a single nonterminal
-            if lhs not in self.N:
-                print(f"Invalid LHS: '{lhs}' is not a nonterminal.")
-                return False
+    def is_cfg(self):        
+        if self.S not in self.N:
+            return False
+        
+        print(self.P.keys())
 
-            # Validate each RHS
-            for rhs in rhs_list:
+        for lhs in self.P.keys():
+            if lhs not in self.N:
+                return False
+            
+            for rhs in self.P[lhs]:
                 for symbol in rhs:
                     if symbol not in self.N and symbol not in self.E and symbol != "epsilon":
-                        print(f"Invalid symbol in production {lhs} -> {' '.join(rhs)}: '{symbol}'")
                         return False
-
-        # All checks passed
         return True
-
+    
     def get_nonterminal_productions(self, nonterminal):
         if nonterminal not in self.N:
             raise Exception('Can only show productions for non-terminals')
