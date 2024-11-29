@@ -3,46 +3,46 @@
 from Grammar import Grammar
 
 class LR0Item:
-    def __init__(self, lhs, rhs, dot_position):
+    def __init__(self, lhs : str, rhs : list, dot_position : int) -> None:
         self.lhs = lhs
         self.rhs = rhs
         self.dot_position = dot_position
 
-    def __eq__(self, other):
+    def __eq__(self, other : 'LR0Item') -> bool:
         return (self.lhs == other.lhs and
                 self.rhs == other.rhs and
                 self.dot_position == other.dot_position)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.lhs, tuple(self.rhs), self.dot_position))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.lhs} -> {' '.join(self.rhs[:self.dot_position] + ['.'] + self.rhs[self.dot_position:])}"
 
 class LR0State:
-    def __init__(self, items):
+    def __init__(self, items : set) -> None:
         self.items = set(items)
 
-    def __eq__(self, other):
+    def __eq__(self, other : 'LR0State') -> bool:
         if not isinstance(other, LR0State):
             return False
         return self.items == other.items
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(frozenset(self.items))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"State({self.items})"
 
 class LR0Parser:
-    def __init__(self, grammar):
+    def __init__(self, grammar: Grammar) -> None:
         self.grammar = grammar
         self.states = []
         self.transitions = {}
         # self.build_automaton()
         # self.build_parsing_table()
 
-    def closure(self, items):
+    def closure(self, items : set) -> set:
         closure = set(items)
         changed = True
         while changed:
@@ -58,14 +58,14 @@ class LR0Parser:
                                 changed = True
         return closure
     
-    def goto(self, items, symbol):
+    def goto(self, items : set, symbol : str) -> set:
         new_items = set()
         for item in items:
             if item.dot_position < len(item.rhs) and item.rhs[item.dot_position] == symbol:
                 new_items.add(LR0Item(item.lhs, item.rhs, item.dot_position + 1))
         return self.closure(new_items)
     
-    def canonical_collection(self):
+    def canonical_collection(self) -> None:
         start_item = LR0Item(self.grammar.S, self.grammar.P[self.grammar.S][0], 0)
         start_state = LR0State(self.closure({start_item}))
         self.states.append(start_state)
