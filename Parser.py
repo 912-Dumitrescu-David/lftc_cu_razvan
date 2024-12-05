@@ -41,40 +41,6 @@ class LR0Parser:
         self.build_automaton()
         self.build_parsing_table()
 
-    def first(self, symbols):
-        first_set = set()
-        if not symbols:
-            return first_set
-        if symbols[0] in self.grammar.E:
-            first_set.add(symbols[0])
-            return first_set
-        for production in self.grammar.P[symbols[0]]:
-            if production == ['']:
-                first_set.add('')
-            else:
-                for symbol in production:
-                    symbol_first = self.first([symbol])
-                    first_set |= symbol_first - {''}
-                    if '' not in symbol_first:
-                        break
-                else:
-                    first_set.add('')
-        return first_set
-
-    def get_follow_set(self, nonterminal):
-        follow_set = set()
-        if nonterminal == self.grammar.S:
-            follow_set.add('$')
-        for lhs, productions in self.grammar.P.items():
-            for production in productions:
-                for index, symbol in enumerate(production):
-                    if symbol == nonterminal:
-                        if index + 1 < len(production):
-                            follow_set |= self.first(production[index + 1:])
-                        if index + 1 == len(production) or '' in self.first(production[index + 1:]):
-                            follow_set |= self.get_follow_set(lhs)
-        return follow_set
-
     def goto(self, items, symbol):
         new_items = set()
         for item in items:
@@ -147,30 +113,73 @@ class LR0Parser:
                         next_state = self.transitions.get((state, next_symbol))
                         if next_state:
                             self.goto_table[state][next_symbol] = self.states.index(next_state)
+    
+    def parse(self, input_string):
+        input_string += '$'
+        stack = [0]
+        index = 0
+
+        while True:
+            state = self.states[stack[-1]]
+            symbol = input_string[index]
+            action = self.action_table[state].get(symbol)
+
+            print(state)
+            print(action)
+            print(stack)
+            print()
+            if action is None:
+                return False
+
+            if action.startswith('shift'):
+                next_state = int(action.split()[1])
+                stack.append(next_state)
+                index += 1
+            elif action.startswith('reduce'):
+                lhs, rhs = action.split('reduce ')[1].split(' -> ')
+                rhs_length = len(rhs.split())
+                for _ in range(rhs_length):
+                    stack.pop()
+                state = self.states[stack[-1]]
+                stack.append(self.goto_table[state][lhs])
+            elif action == 'accept':
+                return True
 
 # Assuming Grammar and LR0Parser classes are defined and imported
 
 # Define the grammar
-productions = {
-    'S': [['a', 'S', 'b', 'S'], ['a', 'S'], ['c']]
-}
-grammar = Grammar(N={'S', 'A'}, E={'a', 'b', 'c'}, S='S', P=productions)
-
+grammar = Grammar.from_file('g1.txt')
 # Initialize the parser
 parser = LR0Parser(grammar)
 
 # Build the automaton
 parser.build_automaton()
 
+# Print the automaton
+for i, state in enumerate(parser.states):
+    print(f"State {i}:")
+    for item in state.items:
+        print(f"  {item}")
+    print()
+
 # Build the parsing table
 parser.build_parsing_table()
 
-# Print the parsing table
-for state in parser.states:
-    print(state)
-    print("  ACTION:")
-    for terminal, action in parser.action_table[state].items():
-        print(f"    {terminal} -> {action}")
-    print("  GOTO:")
-    for nonterminal, goto in parser.goto_table[state].items():
-        print(f"    {nonterminal} -> {goto}")
+# # Print the parsing table
+# for state in parser.states:
+#     print(state)
+#     print("  ACTION:")
+#     for terminal, action in parser.action_table[state].items():
+#         print(f"    {terminal} -> {action}")
+#     print("  GOTO:")
+#     for nonterminal, goto in parser.goto_table[state].items():
+#         print(f"    {nonterminal} -> {goto}")
+
+# # Parse an input string
+# input_string = 'acab'
+
+# #expected output: Input string is accepted.
+# if parser.parse(input_string):
+#     print("Input string is accepted.")
+# else:
+#     print("Input string is rejected.")
