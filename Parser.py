@@ -160,10 +160,10 @@ class LR0Parser:
             symbol = input_string[index]
             action = self.action_table[state].get(symbol)
 
-            print(state)
-            print(action)
-            print(stack)
-            print()
+            # print(state)
+            # print(action)
+            # print(stack)
+            # print()
             if action is None:
                 return False
 
@@ -193,11 +193,11 @@ parser = LR0Parser(grammar)
 parser.build_automaton()
 
 # Print the automaton
-for i, state in enumerate(parser.states):
-    print(f"State {i}:")
-    for item in state.items:
-        print(f"  {item}")
-    print()
+# for i, state in enumerate(parser.states):
+#     # print(f"State {i}:")
+#     for item in state.items:
+#         print(f"  {item}")
+#     # print()
 
 # Build the parsing table
 parser.build_parsing_table()
@@ -226,36 +226,18 @@ for i, state in enumerate(parser.states):
         row.append(parser.goto_table[state].get(nonterminal, ''))
     goto_table.add_row(row)
 
-print("ACTION TABLE")
-print(action_table)
-print("\nGOTO TABLE")
-print(goto_table)
 
 # Parse an input string
-input_string = 'ac'
+with open("seq.txt",'r', encoding='utf-8') as file:
+    input_string = file.readline()
 
-#expected output: Input string is accepted.
-if parser.parse(input_string):
-    print("Input string is accepted.")
-else:
-    print("Input string is rejected.")
-
-# # Print the parsing table
-# for state in parser.states:
-#     print(state)
-#     print("  ACTION:")
-#     for terminal, action in parser.action_table[state].items():
-#         print(f"    {terminal} -> {action}")
-#     print("  GOTO:")
-#     for nonterminal, goto in parser.goto_table[state].items():
-#         print(f"    {nonterminal} -> {goto}")
-
-# # Parse an input string
-# input_string = 'acab'
-
-# #expected output: Input string is accepted.
-# if parser.parse(input_string):
-#     print("Input string is accepted.")
-# else:
-#     print("Input string is rejected.")
+with open("out1.txt",'w', encoding ='utf-8') as file:
+    if parser.parse(input_string):
+        file.write("Input string is accepted.")
+    else:
+        file.write("Input string is rejected.")
+    file.write("\r\n")
+    file.write(str(action_table))
+    file.write("\r\n")
+    file.write(str(goto_table))
 
