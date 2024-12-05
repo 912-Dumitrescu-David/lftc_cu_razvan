@@ -118,6 +118,37 @@ class LR0Parser:
                         next_state = self.transitions.get((state, next_symbol))
                         if next_state:
                             self.goto_table[state][next_symbol] = self.states.index(next_state)
+    
+    def parse(self, input_string):
+        input_string += '$'
+        stack = [0]
+        index = 0
+
+        while True:
+            state = self.states[stack[-1]]
+            symbol = input_string[index]
+            action = self.action_table[state].get(symbol)
+
+            print(state)
+            print(action)
+            print(stack)
+            print()
+            if action is None:
+                return False
+
+            if action.startswith('shift'):
+                next_state = int(action.split()[1])
+                stack.append(next_state)
+                index += 1
+            elif action.startswith('reduce'):
+                lhs, rhs = action.split('reduce ')[1].split(' -> ')
+                rhs_length = len(rhs.split())
+                for _ in range(rhs_length):
+                    stack.pop()
+                state = self.states[stack[-1]]
+                stack.append(self.goto_table[state][lhs])
+            elif action == 'accept':
+                return True
 
     def parse(self, input_string):
         input_string += '$'
@@ -171,6 +202,7 @@ for i, state in enumerate(parser.states):
 # Build the parsing table
 parser.build_parsing_table()
 
+
 # Print the parsing table
 # Print the parsing table
 action_table = PrettyTable()
@@ -200,10 +232,30 @@ print("\nGOTO TABLE")
 print(goto_table)
 
 # Parse an input string
-input_string = 'a'
+input_string = 'ac'
 
 #expected output: Input string is accepted.
 if parser.parse(input_string):
     print("Input string is accepted.")
 else:
     print("Input string is rejected.")
+
+# # Print the parsing table
+# for state in parser.states:
+#     print(state)
+#     print("  ACTION:")
+#     for terminal, action in parser.action_table[state].items():
+#         print(f"    {terminal} -> {action}")
+#     print("  GOTO:")
+#     for nonterminal, goto in parser.goto_table[state].items():
+#         print(f"    {nonterminal} -> {goto}")
+
+# # Parse an input string
+# input_string = 'acab'
+
+# #expected output: Input string is accepted.
+# if parser.parse(input_string):
+#     print("Input string is accepted.")
+# else:
+#     print("Input string is rejected.")
+
