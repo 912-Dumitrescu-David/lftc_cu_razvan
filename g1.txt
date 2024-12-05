@@ -1,5 +1,6 @@
-N = S A
+N = S' S A
 E = a b c
-S = S
+S = S'
 P =
+S' -> S
 S -> a S b S | a S | c
