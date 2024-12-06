@@ -92,7 +92,7 @@ class LR0Parser:
 
     def build_automaton(self):
         self.canonical_collection()
-
+        
     def build_parsing_table(self):
         self.action_table = {}
         self.goto_table = {}
@@ -107,7 +107,9 @@ class LR0Parser:
                         self.action_table[state]['$'] = 'accept'
                     else:
                         for terminal in self.grammar.E | {'$'}:
-                            self.action_table[state][terminal] = f'reduce {item.lhs} -> {" ".join(item.rhs)}'
+                            # Only add reduce action if no shift action exists
+                            if terminal not in self.action_table[state]:
+                                self.action_table[state][terminal] = f'reduce {item.lhs} -> {" ".join(item.rhs)}'
                 else:
                     next_symbol = item.rhs[item.dot_position]
                     if next_symbol in self.grammar.E:
@@ -118,6 +120,16 @@ class LR0Parser:
                         next_state = self.transitions.get((state, next_symbol))
                         if next_state:
                             self.goto_table[state][next_symbol] = self.states.index(next_state)
+                        
+    
+    def check_conflicts(self):
+        conflicts = []
+        for state, actions in self.action_table.items():
+            for symbol, action in actions.items():
+                if isinstance(action, list) and len(action) > 1:
+                    conflicts.append((state, symbol, action))
+        return conflicts
+
     
     def parse(self, input_string):
         input_string += '$'
@@ -129,41 +141,6 @@ class LR0Parser:
             symbol = input_string[index]
             action = self.action_table[state].get(symbol)
 
-            print(state)
-            print(action)
-            print(stack)
-            print()
-            if action is None:
-                return False
-
-            if action.startswith('shift'):
-                next_state = int(action.split()[1])
-                stack.append(next_state)
-                index += 1
-            elif action.startswith('reduce'):
-                lhs, rhs = action.split('reduce ')[1].split(' -> ')
-                rhs_length = len(rhs.split())
-                for _ in range(rhs_length):
-                    stack.pop()
-                state = self.states[stack[-1]]
-                stack.append(self.goto_table[state][lhs])
-            elif action == 'accept':
-                return True
-
-    def parse(self, input_string):
-        input_string += '$'
-        stack = [0]
-        index = 0
-
-        while True:
-            state = self.states[stack[-1]]
-            symbol = input_string[index]
-            action = self.action_table[state].get(symbol)
-
-            # print(state)
-            # print(action)
-            # print(stack)
-            # print()
             if action is None:
                 return False
 
@@ -182,37 +159,30 @@ class LR0Parser:
                 return True
 
 
-# Assuming Grammar and LR0Parser classes are defined and imported
-
-# Define the grammar
 grammar = Grammar.from_file('g1.txt')
-# Initialize the parser
+
 parser = LR0Parser(grammar)
 
-# Build the automaton
 parser.build_automaton()
 
-# Print the automaton
-# for i, state in enumerate(parser.states):
-#     # print(f"State {i}:")
-#     for item in state.items:
-#         print(f"  {item}")
-#     # print()
-
-# Build the parsing table
 parser.build_parsing_table()
 
+conflicts = parser.check_conflicts()
+if conflicts:
+    print("Conflicts found in the parsing table:")
+    for conflict in conflicts:
+        print(conflict)
+else:
+    print("No conflicts found in the parsing table.")
 
-# Print the parsing table
-# Print the parsing table
+
+
 action_table = PrettyTable()
 goto_table = PrettyTable()
 
-# Define the headers for the tables
 action_table.field_names = ["State"] + list(parser.grammar.E) + ['$']
 goto_table.field_names = ["State"] + list(parser.grammar.N)
 
-# Populate the action table
 for i, state in enumerate(parser.states):
     row = [i]
     for terminal in parser.grammar.E | {'$'}:
@@ -227,15 +197,16 @@ for i, state in enumerate(parser.states):
     goto_table.add_row(row)
 
 
-# Parse an input string
 with open("seq.txt",'r', encoding='utf-8') as file:
     input_string = file.readline()
 
 with open("out1.txt",'w', encoding ='utf-8') as file:
     if parser.parse(input_string):
         file.write("Input string is accepted.")
+        print("Input string is accepted.")
     else:
         file.write("Input string is rejected.")
+        print("Input string is rejected.")
     file.write("\r\n")
     file.write(str(action_table))
     file.write("\r\n")
