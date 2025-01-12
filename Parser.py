@@ -1,7 +1,17 @@
-# FILE: Parser.py
-
 from Grammar import Grammar
 from prettytable import PrettyTable
+
+
+class TreeNode:
+    def __init__(self, value):
+        self.value = value
+        self.children = []
+
+    def __repr__(self, level=0):
+        ret = "\t" * level + repr(self.value) + "\n"
+        for child in self.children:
+            ret += child.__repr__(level + 1)
+        return ret
 
 
 class LR0Item:
@@ -107,7 +117,6 @@ class LR0Parser:
                         self.action_table[state]['$'] = 'accept'
                     else:
                         for terminal in self.grammar.E | {'$'}:
-                            # Only add reduce action if no shift action exists
                             if terminal not in self.action_table[state]:
                                 self.action_table[state][terminal] = f'reduce {item.lhs} -> {" ".join(item.rhs)}'
                 else:
@@ -120,8 +129,7 @@ class LR0Parser:
                         next_state = self.transitions.get((state, next_symbol))
                         if next_state:
                             self.goto_table[state][next_symbol] = self.states.index(next_state)
-                        
-    
+
     def check_conflicts(self):
         conflicts = []
         for state, actions in self.action_table.items():
@@ -130,11 +138,11 @@ class LR0Parser:
                     conflicts.append((state, symbol, action))
         return conflicts
 
-    
     def parse(self, input_string):
         input_string += '$'
         stack = [0]
         index = 0
+        parse_tree_stack = []
 
         while True:
             state = self.states[stack[-1]]
@@ -142,23 +150,71 @@ class LR0Parser:
             action = self.action_table[state].get(symbol)
 
             if action is None:
-                return False
+                return False, None
 
             if action.startswith('shift'):
                 next_state = int(action.split()[1])
                 stack.append(next_state)
+                parse_tree_stack.append(TreeNode(symbol))
                 index += 1
             elif action.startswith('reduce'):
                 lhs, rhs = action.split('reduce ')[1].split(' -> ')
                 rhs_length = len(rhs.split())
+                new_node = TreeNode(lhs)
+
                 for _ in range(rhs_length):
                     stack.pop()
+                    if parse_tree_stack:
+                        new_node.children.insert(0, parse_tree_stack.pop())
+
                 state = self.states[stack[-1]]
                 stack.append(self.goto_table[state][lhs])
+                parse_tree_stack.append(new_node)
             elif action == 'accept':
-                return True
+                return True, parse_tree_stack[-1]
+
+    def export_parsing_table(self):
+        action_table = PrettyTable()
+        goto_table = PrettyTable()
+
+        action_table.field_names = ["State"] + list(self.grammar.E) + ['$']
+        goto_table.field_names = ["State"] + list(self.grammar.N)
+
+        for i, state in enumerate(self.states):
+            action_row = [i]
+            goto_row = [i]
+
+            for terminal in self.grammar.E | {'$'}:
+                action_row.append(self.action_table[state].get(terminal, ''))
+            for nonterminal in self.grammar.N:
+                goto_row.append(self.goto_table[state].get(nonterminal, ''))
+
+            action_table.add_row(action_row)
+            goto_table.add_row(goto_row)
+
+        return action_table, goto_table
+
+    def export_parsing_tree_table(self, tree_root):
+        table = PrettyTable()
+        table.field_names = ["Index", "Value", "Parent", "Right Sibling"]
+
+        def traverse(node, parent_index, sibling_index):
+            nonlocal index_counter
+            current_index = index_counter
+            index_counter += 1
+
+            sibling_value = sibling_index if sibling_index is not None else "None"
+            table.add_row([current_index, node.value, parent_index, sibling_value])
+
+            for i, child in enumerate(node.children):
+                traverse(child, current_index, index_counter if i + 1 < len(node.children) else None)
+
+        index_counter = 0
+        traverse(tree_root, "None", "None")
+        return table
 
 
+# Example usage
 grammar = Grammar.from_file('g1.txt')
 
 parser = LR0Parser(grammar)
@@ -176,39 +232,55 @@ else:
     print("No conflicts found in the parsing table.")
 
 
-
-action_table = PrettyTable()
-goto_table = PrettyTable()
-
-action_table.field_names = ["State"] + list(parser.grammar.E) + ['$']
-goto_table.field_names = ["State"] + list(parser.grammar.N)
-
-for i, state in enumerate(parser.states):
-    row = [i]
-    for terminal in parser.grammar.E | {'$'}:
-        row.append(parser.action_table[state].get(terminal, ''))
-    action_table.add_row(row)
-
-# Populate the goto table
-for i, state in enumerate(parser.states):
-    row = [i]
-    for nonterminal in parser.grammar.N:
-        row.append(parser.goto_table[state].get(nonterminal, ''))
-    goto_table.add_row(row)
-
-
 with open("seq.txt",'r', encoding='utf-8') as file:
     input_string = file.readline()
 
 with open("out1.txt",'w', encoding ='utf-8') as file:
-    if parser.parse(input_string):
-        file.write("Input string is accepted.")
-        print("Input string is accepted.")
-    else:
-        file.write("Input string is rejected.")
-        print("Input string is rejected.")
-    file.write("\r\n")
-    file.write(str(action_table))
-    file.write("\r\n")
-    file.write(str(goto_table))
+    accepted, parse_tree = parser.parse(input_string)
+    action_table, goto_table = parser.export_parsing_table()
 
+    file.write("Parsing Table - Action:")
+    file.write("\n")
+    file.write(str(action_table))
+    file.write("\n\n")
+    file.write("Parsing Table - Goto:")
+    file.write("\n")
+    file.write(str(goto_table))
+    file.write("\n\n")
+
+    if accepted:
+        file.write("Input string is accepted.\n")
+        file.write("Parsing Tree Table:\n")
+        tree_table = parser.export_parsing_tree_table(parse_tree)
+        file.write(str(tree_table))
+        print("Input string is accepted.")
+        print("Parsing Tree Table:")
+        print(tree_table)
+    else:
+        file.write("Input string is rejected.\n")
+        print("Input string is rejected.")
+
+
+# Introduce a manual incorrect action table for testing conflicts
+parser.action_table = {
+    parser.states[0]: {
+        'a': ['shift 1', 'reduce S -> a'],  # Conflict: Shift and Reduce
+        '$': 'accept'
+    },
+    parser.states[1]: {
+        'b': 'shift 2'
+    },
+    parser.states[2]: {
+        '$': 'reduce S -> a b'
+    }
+}
+
+conflicts = parser.check_conflicts()
+
+if conflicts:
+    print("Conflicts found in the parsing table:")
+    for conflict in conflicts:
+        print(conflict)
+else:
+    print("No conflicts found in the parsing table.")
+    
